@@ -84,6 +84,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
   }
 
   private[spark] def set(key: String, value: String, silent: Boolean): SparkConf = {
+    // 空值校验
     if (key == null) {
       throw new NullPointerException("null key")
     }
@@ -91,6 +92,7 @@ class SparkConf(loadDefaults: Boolean) extends Cloneable with Logging with Seria
       throw new NullPointerException("null value for " + key)
     }
     if (!silent) {
+      // 如果不是静默添加，设置丢弃的配置会打印提示
       logDeprecationWarning(key)
     }
     settings.put(key, value)
