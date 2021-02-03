@@ -43,9 +43,9 @@ public class TransportConf {
   private final String SPARK_NETWORK_IO_LAZYFD_KEY;
   private final String SPARK_NETWORK_VERBOSE_METRICS;
   private final String SPARK_NETWORK_IO_ENABLETCPKEEPALIVE_KEY;
-
+  // 真正的配置提供方
   private final ConfigProvider conf;
-
+  // 配置的模块名称
   private final String module;
 
   public TransportConf(String module, ConfigProvider conf) {
