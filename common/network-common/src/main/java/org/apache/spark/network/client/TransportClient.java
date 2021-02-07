@@ -72,10 +72,13 @@ import static org.apache.spark.network.util.NettyUtils.getRemoteAddress;
  */
 public class TransportClient implements Closeable {
   private static final Logger logger = LoggerFactory.getLogger(TransportClient.class);
-
+  // 进行通信用的channel通道对象
   private final Channel channel;
+  // 响应处理器
   private final TransportResponseHandler handler;
+  // 客户端id
   @Nullable private String clientId;
+  // 标记是否超时
   private volatile boolean timedOut;
 
   public TransportClient(Channel channel, TransportResponseHandler handler) {
@@ -117,6 +120,7 @@ public class TransportClient implements Closeable {
 
   /**
    * Requests a single chunk from the remote side, from the pre-negotiated streamId.
+   * 从远端协商好的流中请求单个块
    *
    * Chunk indices go from 0 onwards. It is valid to request the same chunk multiple times, though
    * some streams may not support this.
@@ -131,13 +135,13 @@ public class TransportClient implements Closeable {
    * @param callback Callback invoked upon successful receipt of chunk, or upon any failure.
    */
   public void fetchChunk(
-      long streamId,
-      int chunkIndex,
+      long streamId, // 流的索引
+      int chunkIndex, // 块的索引
       ChunkReceivedCallback callback) {
     if (logger.isDebugEnabled()) {
       logger.debug("Sending fetch chunk request {} to {}", chunkIndex, getRemoteAddress(channel));
     }
-
+    // 根据流ID和chunkIndex创建StreamChunkID
     StreamChunkId streamChunkId = new StreamChunkId(streamId, chunkIndex);
     StdChannelListener listener = new StdChannelListener(streamChunkId) {
       @Override
@@ -233,8 +237,10 @@ public class TransportClient implements Closeable {
    * a specified timeout for a response.
    */
   public ByteBuffer sendRpcSync(ByteBuffer message, long timeoutMs) {
+    // 构造用于获取结果的Future对象
     final SettableFuture<ByteBuffer> result = SettableFuture.create();
 
+    // 调用sendRpc()方法进行发送，通过SettableFuture对象获取响应
     sendRpc(message, new RpcResponseCallback() {
       @Override
       public void onSuccess(ByteBuffer response) {
@@ -268,6 +274,8 @@ public class TransportClient implements Closeable {
   /**
    * Sends an opaque message to the RpcHandler on the server-side. No reply is expected for the
    * message, and no delivery guarantees are made.
+   *
+   * 向服务端发送RPC的请求，但不期望能获取响应，因而不能保证投递的可靠性
    *
    * @param message The message to send.
    */

@@ -83,9 +83,15 @@ public class TransportClientFactory implements Closeable {
 
   /** Random number generator for picking connections between peers. */
   private final Random rand;
+  /**
+   * SR 每个远程连接地址的ClientPool池内最多可以存放TransportClient的数量
+   * SR 由于TransportConf的spark.模块名.io.numConnectionsPerPeer参数配置:默认是为1
+   * SR 模块名实际为TransportConf的model字段
+   */
   private final int numConnectionsPerPeer;
-
+  // 客户端创建channel时候使用的类
   private final Class<? extends Channel> socketChannelClass;
+  // 根据Netty的规范,客户端只有work组,所以此创建worker-group
   private EventLoopGroup workerGroup;
   private final PooledByteBufAllocator pooledAllocator;
   private final NettyMemoryMetrics metrics;
@@ -151,6 +157,7 @@ public class TransportClientFactory implements Closeable {
     // Get connection from the connection pool first.
     // If it is not found or not active, create a new one.
     // Use unresolved address here to avoid DNS resolution each time we creates a client.
+    // 避免DNS解析
     final InetSocketAddress unresolvedAddress =
       InetSocketAddress.createUnresolved(remoteHost, remotePort);
 
@@ -269,6 +276,12 @@ public class TransportClientFactory implements Closeable {
     final AtomicReference<Channel> channelRef = new AtomicReference<>();
 
     bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+      /*
+       * 根据Channel初始化TransportContext的Pipeline
+       * 在该过程中会创建TransportChannelHandler对象，
+       * 而创建TransportChannelHandler会关联TransportResponseHandler和TransportRequestHandler及TransportClient三个对象。
+       * 这里会获取其中的TransportClient，该TransportClient关联了Channel对象。
+       */
       @Override
       public void initChannel(SocketChannel ch) {
         TransportChannelHandler clientHandler = context.initializePipeline(ch);
@@ -295,6 +308,7 @@ public class TransportClientFactory implements Closeable {
     long preBootstrap = System.nanoTime();
     logger.debug("Connection to {} successful, running bootstraps...", address);
     try {
+      // 遍历clientBootstraps，执行每个引导程序的doBootstrap()方法
       for (TransportClientBootstrap clientBootstrap : clientBootstraps) {
         clientBootstrap.doBootstrap(client, channel);
       }

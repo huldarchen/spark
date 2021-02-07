@@ -51,7 +51,7 @@ public class TransportConf {
   public TransportConf(String module, ConfigProvider conf) {
     this.module = module;
     this.conf = conf;
-    SPARK_NETWORK_IO_MODE_KEY = getConfKey("io.mode");
+    SPARK_NETWORK_IO_MODE_KEY = getConfKey("io.mode"); // IO的类型 默认是NIO
     SPARK_NETWORK_IO_PREFERDIRECTBUFS_KEY = getConfKey("io.preferDirectBufs");
     SPARK_NETWORK_IO_CONNECTIONTIMEOUT_KEY = getConfKey("io.connectionTimeout");
     SPARK_NETWORK_IO_BACKLOG_KEY = getConfKey("io.backLog");
