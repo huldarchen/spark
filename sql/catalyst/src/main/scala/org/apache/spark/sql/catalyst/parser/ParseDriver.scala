@@ -89,6 +89,7 @@ abstract class AbstractSqlParser extends ParserInterface with SQLConfHelper with
   override def parsePlan(sqlText: String): LogicalPlan = parse(sqlText) { parser =>
     val ctx = parser.singleStatement()
     withOrigin(ctx, Some(sqlText)) {
+      // SR1  1.2调用Visitor方法 对ast进行处理 生成logical plan
       astBuilder.visitSingleStatement(ctx) match {
         case plan: LogicalPlan => plan
         case _ =>
@@ -101,6 +102,7 @@ abstract class AbstractSqlParser extends ParserInterface with SQLConfHelper with
   /** Get the builder (visitor) which converts a ParseTree into an AST. */
   protected def astBuilder: AstBuilder
 
+  // SR1 1.1 sql解析入口
   protected def parse[T](command: String)(toResult: SqlBaseParser => T): T = {
     logDebug(s"Parsing command: $command")
 
