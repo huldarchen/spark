@@ -459,6 +459,7 @@ case class In(value: Expression, list: Seq[Expression]) extends Predicate {
 
   override def children: Seq[Expression] = value +: list
   lazy val inSetConvertible = list.forall(_.isInstanceOf[Literal])
+  // sr4 4.1 这个ordering是用来做什么呢?
   private lazy val ordering = TypeUtils.getInterpretedOrdering(value.dataType)
 
   override def nullable: Boolean = children.exists(_.nullable)

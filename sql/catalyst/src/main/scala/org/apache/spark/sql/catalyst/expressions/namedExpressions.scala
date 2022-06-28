@@ -263,6 +263,7 @@ case class AttributeReference(
     nullable: Boolean = true,
     override val metadata: Metadata = Metadata.empty)(
     val exprId: ExprId = NamedExpression.newExprId,
+    // sr2 那个库,哪个表
     val qualifier: Seq[String] = Seq.empty[String])
   extends Attribute with Unevaluable {
 

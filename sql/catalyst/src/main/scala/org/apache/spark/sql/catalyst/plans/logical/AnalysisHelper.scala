@@ -27,18 +27,23 @@ import org.apache.spark.util.Utils
 
 
 /**
- * [[AnalysisHelper]] defines some infrastructure for the query analyzer. In particular, in query
+ * [[AnalysisHelper]] defines some infrastructure (基础设施) for the query analyzer. In particular, in query
  * analysis we don't want to repeatedly re-analyze sub-plans that have previously been analyzed.
+ * 特别是在查询分析中，我们不想重复重新分析之前分析过的子计划。
  *
  * This trait defines a flag `analyzed` that can be set to true once analysis is done on the tree.
+ * `analyzed`在一次分析后会被置为true.
  * This also provides a set of resolve methods that do not recurse down to sub-plans that have the
  * analyzed flag set to true.
+ * 提供了一些方法,这些方法不会递归到analyzed为true的节点.
  *
  * The analyzer rules should use the various resolve methods, in lieu of the various transform
  * methods defined in [[org.apache.spark.sql.catalyst.trees.TreeNode]] and [[QueryPlan]].
+ * 分析规则的时候使用定义在AnalysisHelper中的方法,而不是使用定义在TreeNode和QueryPlan中的方法
  *
  * To prevent accidental use of the transform methods, this trait also overrides the transform
  * methods to throw exceptions in test mode, if they are used in the analyzer.
+ * 为了防止意外使用转换方法，如果在分析器中使用了转换方法，则此 trait 还覆盖转换方法以在测试模式下抛出异常。
  */
 trait AnalysisHelper extends QueryPlan[LogicalPlan] { self: LogicalPlan =>
 

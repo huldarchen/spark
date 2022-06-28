@@ -398,30 +398,30 @@ private[sql] trait SQLTestData { self =>
    */
   def loadTestData(): Unit = {
     assert(spark != null, "attempted to initialize test data before SparkSession.")
-    emptyTestData
-    testData
+    // emptyTestData
+    // testData
     testData2
-    testData3
-    negativeData
-    largeAndSmallInts
-    decimalData
-    binaryData
-    upperCaseData
-    lowerCaseData
-    arrayData
-    mapData
-    repeatedData
-    nullableRepeatedData
-    nullInts
-    allNulls
-    nullStrings
-    tableName
-    unparsedStrings
-    withEmptyParts
-    person
-    salary
-    complexData
-    courseSales
+    // testData3
+    // negativeData
+    // largeAndSmallInts
+    // decimalData
+    // binaryData
+    // upperCaseData
+    // lowerCaseData
+    // arrayData
+    // mapData
+    // repeatedData
+    // nullableRepeatedData
+    // nullInts
+    // allNulls
+    // nullStrings
+    // tableName
+    // unparsedStrings
+    // withEmptyParts
+    // person
+    // salary
+    // complexData
+    // courseSales
   }
 }
 
