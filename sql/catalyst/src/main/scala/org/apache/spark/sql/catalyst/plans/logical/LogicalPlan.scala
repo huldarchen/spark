@@ -163,6 +163,7 @@ abstract class LogicalPlan
 
 /**
  * A logical plan node with no children.
+ * SR1 1.2 主要是一些数据来源,表(relation),RDD
  */
 trait LeafNode extends LogicalPlan with LeafLike[LogicalPlan] {
   override def producedAttributes: AttributeSet = outputSet
