@@ -257,6 +257,7 @@ class Analyzer(override val catalogManager: CatalogManager)
   }
 
   override def batches: Seq[Batch] = Seq(
+    // SR2.1 Substitution:替代
     Batch("Substitution", fixedPoint,
       // This rule optimizes `UpdateFields` expression chains so looks more like optimization rule.
       // However, when manipulating deeply nested schema, `UpdateFields` expression tree could be
@@ -272,22 +273,24 @@ class Analyzer(override val catalogManager: CatalogManager)
     Batch("Hints", fixedPoint,
       ResolveHints.ResolveJoinStrategyHints,
       ResolveHints.ResolveCoalesceHints),
+    // SR2.1 简单的健壮性检查, 检查function
     Batch("Simple Sanity Check", Once,
       LookupFunctions),
     Batch("Keep Legacy Outputs", Once,
       KeepLegacyOutputs),
+    // SR2.1 *** 解析表 列
     Batch("Resolution", fixedPoint,
       ResolveTableValuedFunctions(v1SessionCatalog) ::
       ResolveNamespace(catalogManager) ::
       new ResolveCatalogs(catalogManager) ::
       ResolveUserSpecifiedColumns ::
       ResolveInsertInto ::
-      ResolveRelations ::
+      ResolveRelations :: // SR2.1 解析表关系
       ResolvePartitionSpec ::
       ResolveFieldNameAndPosition ::
       AddMetadataColumns ::
       DeduplicateRelations ::
-      ResolveReferences ::
+      ResolveReferences :: // sr2.1 解析列信息
       ResolveExpressionsWithNamePlaceholders ::
       ResolveDeserializer ::
       ResolveNewInstance ::
@@ -1514,6 +1517,7 @@ class Analyzer(override val catalogManager: CatalogManager)
 
       case q: LogicalPlan =>
         logTrace(s"Attempting to resolve ${q.simpleString(conf.maxToStringFields)}")
+        // sr2.1 默认都会走到这里 字段都是Expression表达式
         q.mapExpressions(resolveExpressionByPlanChildren(_, q))
     }
 
@@ -1800,6 +1804,7 @@ class Analyzer(override val catalogManager: CatalogManager)
     resolveExpression(
       e,
       resolveColumnByName = nameParts => {
+        // sr2.1 默认是不区分大小写
         q.resolveChildren(nameParts, resolver)
       },
       getAttrCandidates = () => {
