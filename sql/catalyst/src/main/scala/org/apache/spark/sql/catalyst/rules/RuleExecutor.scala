@@ -224,6 +224,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
             tracker.foreach(_.recordRuleInvocation(rule.ruleName, runTime, effective))
 
             // Run the structural integrity checker against the plan after each rule.
+            // SR2.1 检查id的唯一性
             if (effective && !isPlanIntegral(plan, result)) {
               throw QueryExecutionErrors.structuralIntegrityIsBrokenAfterApplyingRuleError(
                 rule.ruleName, batch.name)
@@ -231,6 +232,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
 
             result
         }
+        // SR2.1 rule batch 退出逻辑是: 1. 达到执行的迭代次数(1次或者是固定值100)次, 当执行次数为1次且是测试的时候,要检查幂等性; 2. 执行计划没有发生变化
         iteration += 1
         if (iteration > batch.strategy.maxIterations) {
           // Only log if this is a rule that is supposed to run more than once.
@@ -251,6 +253,7 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
           // Check idempotence for Once batches.
           if (batch.strategy == Once &&
             Utils.isTesting && !excludedOnceBatches.contains(batch.name)) {
+            // SR2.1 检查幂等性
             checkBatchIdempotence(batch, curPlan)
           }
           continue = false
