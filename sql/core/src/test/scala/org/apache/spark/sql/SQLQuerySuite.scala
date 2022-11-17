@@ -4085,6 +4085,31 @@ class SQLQuerySuite extends QueryTest with SharedSparkSession with AdaptiveSpark
     }
   }
 
+  test("SPARK-40247: Fix BitSet equals") {
+    withTable("td") {
+      testData
+        .withColumn("bucket", $"key" % 3)
+        .write
+        .mode(SaveMode.Overwrite)
+        .bucketBy(2, "bucket")
+        .format("parquet")
+        .saveAsTable("td")
+      val df = sql(
+        """
+          |SELECT t1.key, t2.key, t3.key
+          |FROM td AS t1
+          |JOIN td AS t2 ON t2.key = t1.key
+          |JOIN td AS t3 ON t3.key = t2.key
+          |WHERE t1.bucket = 1 AND t2.bucket = 1 AND t3.bucket = 1
+          |""".stripMargin)
+      df.collect()
+      val reusedExchanges = collect(df.queryExecution.executedPlan) {
+        case r: ReusedExchangeExec => r
+      }
+      assert(reusedExchanges.size == 1)
+    }
+  }
+
   test("SPARK-35331: Fix resolving original expression in RepartitionByExpression after aliased") {
     Seq("CLUSTER", "DISTRIBUTE").foreach { keyword =>
       Seq("a", "substr(a, 0, 3)").foreach { expr =>
@@ -4525,6 +4550,27 @@ class SQLQuerySuite extends QueryTest with SharedSparkSession with AdaptiveSpark
     checkAnswer(
       sql("select * from test_temp_view"),
       Row(1, 2, 3, 1, 2, 3, 1, 1))
+  }
+
+  test("SPARK-40389: Don't eliminate a cast which can cause overflow") {
+    withSQLConf(SQLConf.ANSI_ENABLED.key -> "true") {
+      withTable("dt") {
+        sql("create table dt using parquet as select 9000000000BD as d")
+        val msg = intercept[SparkException] {
+          sql("select cast(cast(d as int) as long) from dt").collect()
+        }.getCause.getMessage
+        assert(msg.contains("The value 9000000000BD of the type \"DECIMAL(10,0)\" " +
+          "cannot be cast to \"INT\" due to an overflow"))
+      }
+    }
+  }
+
+  test("SPARK-41144: Unresolved hint should not cause query failure") {
+    withTable("t1", "t2") {
+      sql("CREATE TABLE t1(c1 bigint) USING PARQUET")
+      sql("CREATE TABLE t2(c2 bigint) USING PARQUET")
+      sql("SELECT /*+ hash(t2) */ * FROM t1 join t2 on c1 = c2")
+    }
   }
 }
 

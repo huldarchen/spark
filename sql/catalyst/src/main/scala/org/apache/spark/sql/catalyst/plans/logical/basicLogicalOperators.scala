@@ -88,7 +88,7 @@ case class Project(projectList: Seq[NamedExpression], child: LogicalPlan)
     getAllValidConstraints(projectList)
 
   override def metadataOutput: Seq[Attribute] =
-    getTagValue(Project.hiddenOutputTag).getOrElse(Nil)
+    getTagValue(Project.hiddenOutputTag).getOrElse(child.metadataOutput)
 
   override protected def withNewChildInternal(newChild: LogicalPlan): Project =
     copy(child = newChild)
@@ -143,16 +143,17 @@ case class Generate(
 
   override def producedAttributes: AttributeSet = AttributeSet(generatorOutput)
 
-  def qualifiedGeneratorOutput: Seq[Attribute] = {
-    val qualifiedOutput = qualifier.map { q =>
-      // prepend the new qualifier to the existed one
-      generatorOutput.map(a => a.withQualifier(Seq(q)))
-    }.getOrElse(generatorOutput)
-    val nullableOutput = qualifiedOutput.map {
-      // if outer, make all attributes nullable, otherwise keep existing nullability
-      a => a.withNullability(outer || a.nullable)
+  def nullableOutput: Seq[Attribute] = {
+    generatorOutput.map { a =>
+      a.withNullability(outer || a.nullable)
     }
-    nullableOutput
+  }
+
+  def qualifiedGeneratorOutput: Seq[Attribute] = {
+    qualifier.map { q =>
+      // prepend the new qualifier to the existed one
+      nullableOutput.map(a => a.withQualifier(Seq(q)))
+    }.getOrElse(nullableOutput)
   }
 
   def output: Seq[Attribute] = requiredChildOutput ++ qualifiedGeneratorOutput
@@ -1332,9 +1333,14 @@ case class SubqueryAlias(
   }
 
   override def metadataOutput: Seq[Attribute] = {
-    val qualifierList = identifier.qualifier :+ alias
-    val nonHiddenMetadataOutput = child.metadataOutput.filter(!_.supportsQualifiedStar)
-    nonHiddenMetadataOutput.map(_.withQualifier(qualifierList))
+    // Propagate metadata columns from leaf nodes through a chain of `SubqueryAlias`.
+    if (child.isInstanceOf[LeafNode] || child.isInstanceOf[SubqueryAlias]) {
+      val qualifierList = identifier.qualifier :+ alias
+      val nonHiddenMetadataOutput = child.metadataOutput.filter(!_.qualifiedAccessOnly)
+      nonHiddenMetadataOutput.map(_.withQualifier(qualifierList))
+    } else {
+      Nil
+    }
   }
 
   override def maxRows: Option[Long] = child.maxRows

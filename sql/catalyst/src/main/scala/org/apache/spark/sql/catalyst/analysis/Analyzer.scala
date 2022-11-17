@@ -926,6 +926,7 @@ class Analyzer(override val catalogManager: CatalogManager)
 
     def apply(plan: LogicalPlan): LogicalPlan = plan.resolveOperatorsDownWithPruning(
       AlwaysProcess.fn, ruleId) {
+      case hint: UnresolvedHint => hint
       // Add metadata output to all node types
       case node if node.children.nonEmpty && node.resolved && hasMetadataCol(node) =>
         val inputAttrs = AttributeSet(node.children.flatMap(_.output))
@@ -970,9 +971,11 @@ class Analyzer(override val catalogManager: CatalogManager)
     private def addMetadataCol(plan: LogicalPlan): LogicalPlan = plan match {
       case s: ExposesMetadataColumns => s.withMetadataColumns()
       case p: Project =>
-        p.copy(
+        val newProj = p.copy(
           projectList = p.metadataOutput ++ p.projectList,
           child = addMetadataCol(p.child))
+        newProj.copyTagsFrom(p)
+        newProj
       case _ => plan.withNewChildren(plan.children.map(addMetadataCol))
     }
   }
@@ -2829,7 +2832,7 @@ class Analyzer(override val catalogManager: CatalogManager)
                   generatorOutput = ResolveGenerate.makeGeneratorOutput(generator, names),
                   child)
 
-                (Some(g), res._2 ++ g.generatorOutput)
+                (Some(g), res._2 ++ g.nullableOutput)
               case other =>
                 (res._1, res._2 :+ other)
             }
@@ -3480,8 +3483,8 @@ class Analyzer(override val catalogManager: CatalogManager)
     val project = Project(projectList, Join(left, right, joinType, newCondition, hint))
     project.setTagValue(
       Project.hiddenOutputTag,
-      hiddenList.map(_.markAsSupportsQualifiedStar()) ++
-        project.child.metadataOutput.filter(_.supportsQualifiedStar))
+      hiddenList.map(_.markAsQualifiedAccessOnly()) ++
+        project.child.metadataOutput.filter(_.qualifiedAccessOnly))
     project
   }
 

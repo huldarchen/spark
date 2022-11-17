@@ -115,7 +115,6 @@ abstract class Optimizer(catalogManager: CatalogManager)
         RemoveDispensableExpressions,
         SimplifyBinaryComparison,
         ReplaceNullWithFalseInPredicate,
-        SimplifyConditionalsInPredicate,
         PruneFilters,
         SimplifyCasts,
         SimplifyCaseConversionExpressions,
@@ -552,7 +551,7 @@ object RemoveRedundantAliases extends Rule[LogicalPlan] {
         })
         Join(newLeft, newRight, joinType, newCondition, hint)
 
-      case _: Union =>
+      case u: Union =>
         var first = true
         plan.mapChildren { child =>
           if (first) {
@@ -563,7 +562,8 @@ object RemoveRedundantAliases extends Rule[LogicalPlan] {
             // output attributes could return incorrect result.
             removeRedundantAliases(child, excluded ++ child.outputSet)
           } else {
-            removeRedundantAliases(child, excluded)
+            // We don't need to exclude those attributes that `Union` inherits from its first child.
+            removeRedundantAliases(child, excluded -- u.children.head.outputSet)
           }
         }
 
@@ -1080,6 +1080,19 @@ object CollapseProject extends Rule[LogicalPlan] with AliasHelper {
     // We should collapse these two projects and eventually get Project(a, b, child)
     case _: CreateNamedStruct | _: CreateArray | _: CreateMap | _: UpdateFields =>
       extractOnlyConsumer
+    case _ => false
+  }
+
+  /**
+   * Check if the given expression is cheap that we can inline it.
+   */
+  def isCheap(e: Expression): Boolean = e match {
+    case _: Attribute | _: OuterReference => true
+    case _ if e.foldable => true
+    // PythonUDF is handled by the rule ExtractPythonUDFs
+    case _: PythonUDF => true
+    // Alias and ExtractValue are very cheap.
+    case _: Alias | _: ExtractValue => e.children.forall(isCheap)
     case _ => false
   }
 
