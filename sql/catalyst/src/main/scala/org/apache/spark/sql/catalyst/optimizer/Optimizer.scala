@@ -292,8 +292,16 @@ abstract class Optimizer(catalogManager: CatalogManager)
       RewriteAsOfJoin)
 
     override def apply(plan: LogicalPlan): LogicalPlan = {
-      rules.foldLeft(plan) { case (sp, rule) => rule.apply(sp) }
-        .transformAllExpressionsWithPruning(_.containsPattern(PLAN_EXPRESSION)) {
+      rules.foldLeft(plan) { case (sp, rule) =>
+        val result = rule.apply(sp)
+        val effective = !(result.fastEquals(sp))
+        if (effective) {
+          println("***********************************")
+          println(rule.ruleName)
+          println(result)
+        }
+        result
+      }.transformAllExpressionsWithPruning(_.containsPattern(PLAN_EXPRESSION)) {
           case s: SubqueryExpression =>
             val Subquery(newPlan, _) = apply(Subquery.fromExpression(s))
             s.withNewPlan(newPlan)

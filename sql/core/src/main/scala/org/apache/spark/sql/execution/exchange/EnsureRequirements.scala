@@ -277,6 +277,7 @@ case class EnsureRequirements(
       leftPartitioning: Option[Partitioning],
       rightPartitioning: Option[Partitioning]): Option[(Seq[Expression], Seq[Expression])] = {
     (leftPartitioning, rightPartitioning) match {
+      // SR3 [executedPlan] HashPartitioning
       case (Some(HashPartitioning(leftExpressions, _)), _) =>
         reorder(leftKeys.toIndexedSeq, rightKeys.toIndexedSeq, leftExpressions, leftKeys)
           .orElse(reorderJoinKeysRecursively(
@@ -285,6 +286,8 @@ case class EnsureRequirements(
         reorder(leftKeys.toIndexedSeq, rightKeys.toIndexedSeq, rightExpressions, rightKeys)
           .orElse(reorderJoinKeysRecursively(
             leftKeys, rightKeys, leftPartitioning, None))
+
+      // SR3 [executedPlan] KeyGroupedPartitioning
       case (Some(KeyGroupedPartitioning(clustering, _, _)), _) =>
         val leafExprs = clustering.flatMap(_.collectLeaves())
         reorder(leftKeys.toIndexedSeq, rightKeys.toIndexedSeq, leafExprs, leftKeys)
@@ -295,6 +298,8 @@ case class EnsureRequirements(
         reorder(leftKeys.toIndexedSeq, rightKeys.toIndexedSeq, leafExprs, rightKeys)
             .orElse(reorderJoinKeysRecursively(
               leftKeys, rightKeys, leftPartitioning, None))
+
+      // SR3 [executedPlan] PartitioningCollection
       case (Some(PartitioningCollection(partitionings)), _) =>
         partitionings.foldLeft(Option.empty[(Seq[Expression], Seq[Expression])]) { (res, p) =>
           res.orElse(reorderJoinKeysRecursively(leftKeys, rightKeys, Some(p), rightPartitioning))

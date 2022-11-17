@@ -68,6 +68,7 @@ public final class UnsafeRow extends InternalRow implements Externalizable, Kryo
   //////////////////////////////////////////////////////////////////////////////
 
   public static int calculateBitSetWidthInBytes(int numFields) {
+    // SR4 [InternalRow] 列空值对齐, 64列之内 nullbitset 长度为 8byte(64bits); 65~128列 nullbitset 长度为 16byte(128bits)
     return ((numFields + 63)/ 64) * 8;
   }
 
@@ -96,6 +97,7 @@ public final class UnsafeRow extends InternalRow implements Externalizable, Kryo
   }
 
   public static boolean isFixedLength(DataType dt) {
+    // SR4 [InternalRow] 是否是固定长度的字段
     if (dt instanceof UserDefinedType) {
       return isFixedLength(((UserDefinedType) dt).sqlType());
     }
@@ -123,6 +125,8 @@ public final class UnsafeRow extends InternalRow implements Externalizable, Kryo
   //////////////////////////////////////////////////////////////////////////////
 
   private Object baseObject;
+
+  // SR4 [InternalRow] baseOffset 指的是对象的起始位置
   private long baseOffset;
 
   /** The number of fields in this row, used for calculating the bitset width (and in assertions) */

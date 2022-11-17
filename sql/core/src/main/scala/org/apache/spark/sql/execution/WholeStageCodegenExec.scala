@@ -149,12 +149,15 @@ trait CodegenSupport extends SparkPlan {
    * Note that `outputVars` and `row` can't both be null.
    */
   final def consume(ctx: CodegenContext, outputVars: Seq[ExprCode], row: String = null): String = {
+    // SR3 [codegen] inputVars代表下一步逻辑处理的变量 Seq[ExprCode]
     val inputVarsCandidate =
       if (outputVars != null) {
+        // SR3 [codegen] 行变量为空,直接复制
         assert(outputVars.length == output.length)
         // outputVars will be used to generate the code for UnsafeRow, so we should copy them
         outputVars.map(_.copy())
       } else {
+        // SR3 [codegen] 行变量不为空
         assert(row != null, "outputVars and row cannot both be null.")
         ctx.currentVars = null
         ctx.INPUT_ROW = row
@@ -162,12 +165,11 @@ trait CodegenSupport extends SparkPlan {
           BoundReference(i, attr.dataType, attr.nullable).genCode(ctx)
         }
       }
-
     val inputVars = inputVarsCandidate match {
       case stream: Stream[ExprCode] => stream.force
       case other => other
     }
-
+    // SR3 [codegen] 数据整行数据的变量名 类型是UnsafeRow
     val rowVar = prepareRowVar(ctx, row, outputVars)
 
     // Set up the `currentVars` in the codegen context, as we generate the code of `inputVars`
@@ -657,6 +659,7 @@ case class WholeStageCodegenExec(child: SparkPlan)(val codegenStageId: Int)
   def doCodeGen(): (CodegenContext, CodeAndComment) = {
     val startTime = System.nanoTime()
     val ctx = new CodegenContext
+    // SR3 [codegen] 生成子类的代码 计算逻辑
     val code = child.asInstanceOf[CodegenSupport].produce(ctx, this)
 
     // main next function.

@@ -296,6 +296,7 @@ object GenerateUnsafeProjection extends CodeGenerator[Seq[Expression], UnsafePro
     }
 
     val rowWriterClass = classOf[UnsafeRowWriter].getName
+    // SR4 [InternalRow] 这里的可变字符串长度为什么要取32个字节的倍数.?????
     val rowWriter = ctx.addMutableState(rowWriterClass, "rowWriter",
       v => s"$v = new $rowWriterClass(${expressions.length}, ${numVarLenFields * 32});")
 

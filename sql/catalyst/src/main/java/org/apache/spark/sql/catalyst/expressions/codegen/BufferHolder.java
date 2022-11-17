@@ -52,7 +52,9 @@ final class BufferHolder {
         "Cannot create BufferHolder for input UnsafeRow because there are " +
           "too many fields (number of fields: " + row.numFields() + ")");
     }
+    // SR4 [InternalRow] 计算固定(非可变字符串)字段的长度 = 空值标记位 + 8 * 字段数量
     this.fixedSize = bitsetWidthInBytes + 8 * row.numFields();
+    // SR4 [InternalRow] 计算可变字段的长度 32的倍数
     int roundedSize = ByteArrayMethods.roundNumberOfBytesToNearestWord(fixedSize + initialSize);
     this.buffer = new byte[roundedSize];
     this.row = row;
