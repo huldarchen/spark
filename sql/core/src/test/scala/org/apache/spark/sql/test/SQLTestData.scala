@@ -401,7 +401,7 @@ private[sql] trait SQLTestData { self =>
     // emptyTestData
     // testData
     testData2
-    // testData3
+    testData3
     // negativeData
     // largeAndSmallInts
     // decimalData
@@ -414,14 +414,14 @@ private[sql] trait SQLTestData { self =>
     // nullableRepeatedData
     // nullInts
     // allNulls
-    // nullStrings
+    nullStrings
     // tableName
     // unparsedStrings
     // withEmptyParts
     // person
     // salary
     // complexData
-    // courseSales
+    courseSales
   }
 }
 

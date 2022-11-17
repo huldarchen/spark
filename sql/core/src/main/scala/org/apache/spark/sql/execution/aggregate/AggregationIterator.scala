@@ -93,6 +93,7 @@ abstract class AggregationIterator(
           // PartialMerge and Final.
           val updatedFunc = func match {
             case function: ImperativeAggregate =>
+              // SR4 [aggregate] 更新后的聚合函数
               function.withNewInputAggBufferOffset(inputBufferOffset)
             case function => function
           }
@@ -158,7 +159,8 @@ abstract class AggregationIterator(
       inputAttributes: Seq[Attribute]): (InternalRow, InternalRow) => Unit = {
     val joinedRow = new JoinedRow
     if (expressions.nonEmpty) {
-      val mergeExpressions =
+      // SR5 [agg] 合并表达式,为什么要合并?
+      val mergeExpressions: Seq[Expression] =
         functions.zip(expressions.map(ae => (ae.mode, ae.isDistinct, ae.filter))).flatMap {
           case (ae: DeclarativeAggregate, (mode, isDistinct, filter)) =>
             mode match {
@@ -207,7 +209,8 @@ abstract class AggregationIterator(
 
       (currentBuffer: InternalRow, row: InternalRow) => {
         // Process all expression-based aggregate functions.
-        updateProjection.target(currentBuffer)(joinedRow(currentBuffer, row))
+        // Projection 是一个匿名函数,(InternalRow => InternalRow) 第二个括号是调用函数apply
+        updateProjection.target(currentBuffer).apply(joinedRow.apply(currentBuffer, row))
         // Process all imperative aggregate functions.
         var i = 0
         while (i < updateFunctions.length) {
@@ -229,10 +232,12 @@ abstract class AggregationIterator(
   protected val groupingAttributes = groupingExpressions.map(_.toAttribute)
 
   // Initializing the function used to generate the output row.
+  // 生成输出结果.
   protected def generateResultProjection(): (UnsafeRow, InternalRow) => UnsafeRow = {
     val joinedRow = new JoinedRow
     val modes = aggregateExpressions.map(_.mode).distinct
     val bufferAttributes = aggregateFunctions.flatMap(_.aggBufferAttributes)
+    // 3种情况,最终输出,部分聚合,全聚合
     if (modes.contains(Final) || modes.contains(Complete)) {
       val evalExpressions = aggregateFunctions.map {
         case ae: DeclarativeAggregate => ae.evaluateExpression

@@ -125,13 +125,16 @@ object AggUtils {
       resultExpressions: Seq[NamedExpression],
       child: SparkPlan): Seq[SparkPlan] = {
     // Check if we can use HashAggregate.
-
+    // SR2 [physical]  无distinct聚合表达式生成
     // 1. Create an Aggregate Operator for partial aggregations.
-
+    // SR2 [physical] 获取group的字段引用
     val groupingAttributes = groupingExpressions.map(_.toAttribute)
+    // SR2 [physical] 生成局部聚合的计算表达式
     val partialAggregateExpressions = aggregateExpressions.map(_.copy(mode = Partial))
+
     val partialAggregateAttributes =
       partialAggregateExpressions.flatMap(_.aggregateFunction.aggBufferAttributes)
+
     val partialResultExpressions =
       groupingAttributes ++
         partialAggregateExpressions.flatMap(_.aggregateFunction.inputAggBufferAttributes)
@@ -149,7 +152,7 @@ object AggUtils {
     // merge sessions with calculating aggregation values.
     val interExec: SparkPlan = mayAppendMergingSessionExec(groupingExpressions,
       aggregateExpressions, partialAggregate)
-
+    // SR2 [physical] 无distinct的最终聚合
     // 2. Create an Aggregate Operator for final aggregations.
     val finalAggregateExpressions = aggregateExpressions.map(_.copy(mode = Final))
     // The attributes of the final aggregation buffer, which is presented as input to the result

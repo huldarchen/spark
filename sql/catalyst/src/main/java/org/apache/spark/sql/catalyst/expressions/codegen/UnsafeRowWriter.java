@@ -49,7 +49,7 @@ public final class UnsafeRowWriter extends UnsafeWriter {
   public UnsafeRowWriter(int numFields, int initialBufferSize) {
     this(new UnsafeRow(numFields), initialBufferSize);
   }
-
+  // SR4 [UnsafeRow] 这个构造函数用来将结构体写入已有的Row中
   public UnsafeRowWriter(UnsafeWriter writer, int numFields) {
     this(null, writer.getBufferHolder(), numFields);
   }

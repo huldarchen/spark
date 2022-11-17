@@ -39,6 +39,7 @@ public abstract class BufferedRowIterator {
   protected int partitionIndex = -1;
 
   public boolean hasNext() throws IOException {
+    // SR4 [InternalRow] 如果当前的行是空的 就处理下一个 这是一个标记
     if (currentRows.isEmpty()) {
       processNext();
     }

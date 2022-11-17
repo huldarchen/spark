@@ -404,7 +404,7 @@ object QueryExecution {
       subquery: Boolean): Seq[Rule[SparkPlan]] = {
     // `AdaptiveSparkPlanExec` is a leaf node. If inserted, all the following rules will be no-op
     // as the original plan is hidden behind `AdaptiveSparkPlanExec`.
-    adaptiveExecutionRule.toSeq ++
+    // adaptiveExecutionRule.toSeq ++
     Seq(
       CoalesceBucketsInJoin,
       PlanDynamicPruningFilters(sparkSession),
@@ -420,7 +420,8 @@ object QueryExecution {
       DisableUnnecessaryBucketedScan,
       ApplyColumnarRulesAndInsertTransitions(
         sparkSession.sessionState.columnarRules, outputsColumnar = false),
-      CollapseCodegenStages()) ++
+      // CollapseCodegenStages()
+    ) ++
       (if (subquery) {
         Nil
       } else {

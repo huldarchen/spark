@@ -40,6 +40,7 @@ class EquivalentExpressions {
    * Returns true if there was already a matching expression.
    */
   def addExpr(expr: Expression): Boolean = {
+    // SR2 [physical] 表达式去重判断
     updateExprInMap(expr, equivalenceMap)
   }
 
@@ -56,6 +57,7 @@ class EquivalentExpressions {
       useCount: Int = 1): Boolean = {
     if (expr.deterministic) {
       val wrapper = ExpressionEquals(expr)
+      // SR2 [physical] 利用包装类ExpressionEquals的equal的方法
       map.get(wrapper) match {
         case Some(stats) =>
           stats.useCount += useCount

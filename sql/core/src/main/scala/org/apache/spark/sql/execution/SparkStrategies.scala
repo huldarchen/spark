@@ -492,6 +492,7 @@ abstract class SparkStrategies extends QueryPlanner[SparkPlan] {
    */
   object Aggregation extends Strategy {
     def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
+      // SR2 [physical] 聚合主要的物理执行计划,核心的是去重,分离.
       case PhysicalAggregation(groupingExpressions, aggExpressions, resultExpressions, child)
         if aggExpressions.forall(expr => expr.isInstanceOf[AggregateExpression]) =>
         val aggregateExpressions = aggExpressions.map(expr =>
