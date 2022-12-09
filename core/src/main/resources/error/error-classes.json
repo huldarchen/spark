@@ -1529,6 +1529,11 @@
       "The <functionName> requires <expectedNum> parameters but the actual number is <actualNum>."
     ]
   },
+  "INVALID_QUALIFIER_PARTS" : {
+    "message" : [
+      "<quoted> is not a valid <identifier> as it has more than 2 name parts."
+    ]
+  },
   "_LEGACY_ERROR_TEMP_0001" : {
     "message" : [
       "Invalid InsertIntoContext"
@@ -2633,11 +2638,6 @@
   "_LEGACY_ERROR_TEMP_1184" : {
     "message" : [
       "Catalog <plugin> does not support <ability>."
-    ]
-  },
-  "_LEGACY_ERROR_TEMP_1185" : {
-    "message" : [
-      "<quoted> is not a valid <identifier> as it has more than 2 name parts."
     ]
   },
   "_LEGACY_ERROR_TEMP_1186" : {
