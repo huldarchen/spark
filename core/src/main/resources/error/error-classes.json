@@ -772,6 +772,11 @@
       "<protobufClassName> is not a Protobuf message type"
     ]
   },
+  "INVALID_QUALIFIER_PARTS" : {
+    "message" : [
+      "<quoted> is not a valid <identifier> as it has more than 2 name parts."
+    ]
+  },
   "INVALID_SCHEMA" : {
     "message" : [
       "The input schema <inputSchema> is not a valid schema string."
@@ -1527,11 +1532,6 @@
   "WRONG_NUM_ARGS" : {
     "message" : [
       "The <functionName> requires <expectedNum> parameters but the actual number is <actualNum>."
-    ]
-  },
-  "INVALID_QUALIFIER_PARTS" : {
-    "message" : [
-      "<quoted> is not a valid <identifier> as it has more than 2 name parts."
     ]
   },
   "_LEGACY_ERROR_TEMP_0001" : {
