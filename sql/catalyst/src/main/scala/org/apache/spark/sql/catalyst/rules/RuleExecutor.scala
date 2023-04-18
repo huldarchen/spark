@@ -216,6 +216,9 @@ abstract class RuleExecutor[TreeType <: TreeNode[_]] extends Logging {
               queryExecutionMetrics.incNumEffectiveExecution(rule.ruleName)
               queryExecutionMetrics.incTimeEffectiveExecutionBy(rule.ruleName, runTime)
               planChangeLogger.logRule(rule.ruleName, plan, result)
+              println("*******************************************")
+              println(rule.ruleName)
+              println(result)
             }
             queryExecutionMetrics.incExecutionTimeBy(rule.ruleName, runTime)
             queryExecutionMetrics.incNumExecution(rule.ruleName)

@@ -41,14 +41,31 @@ class XiaoluobuSQLQuerySuite extends QueryTest
      sqlDF.show()  */
     // val analyzedDF = sql("select b,count(a) as a1,sum(a+b) as a2,sum(b+a) as a3,sum(a)+1 as a4  from `testdata2` as t1 where b<2 group by b")
     // val analyzedDF = sql("select a, sum(b)   from `testdata2` as t1 group by a")
+    // val analyzedDF = sql("select tmp1.a,tmp1.b from testdata2 tmp1 join testdata2 tmp2 on tmp1.a=tmp2.a where tmp1.b<1 and tmp2.b>3")
+    val analyzedDF = sql("select a,b from (select  A,B,count(1) as c from testdata2 where a>2  group by a,b)tmp where c=1 and b<5")
+    // course: String, year: Int, earnings: Double
     spark.sqlContext.setConf("spark.yarn.maxAppAttempts", "1")
-    val analyzedDF = sql(
-      """
-        |select a,b
-        |from testdata2
-        |where a between  date_format('2022-11-12', 'yMMdd') AND  date_format('2022-11-12', 'yMMdd')
-        |""".stripMargin)
-
+    // val analyzedDF = sql(
+    //   """
+    //     |select a,b
+    //     |from testdata2
+    //     |where a between  date_format('2022-11-12', 'yMMdd') AND  date_format('2022-11-12', 'yMMdd')
+    //     |""".stripMargin)
+    // SELECT collect_set (t.c) AS a
+    // FROM TaBlE2 t
+    // GROUP BY t.a
+    // HAVING size (a) > 1
+    // val analyzedDF = sql(
+    //   """
+    //     | SELECT SUM(a) AS b, CAST('2020-01-01' AS DATE) AS fake FROM VALUES (1, 10), (2, 20) AS T(a, b) GROUP BY b HAVING b > 10;
+    //   """.stripMargin)
+    // val analyzedDF = sql(
+    //   """
+    //     |select collect_set(testdata2.b) as a
+    //     |from testdata2
+    //     |group by b
+    //     |having size(a) > 0
+    //     |""".stripMargin)
     println(analyzedDF.logicalPlan)
     // val analyzedDF = sql("select a, count(distinct b), sum(b)   from `testdata2` as t1 group by a")
     // val analyzedDF = sql("select course, count(distinct year) as year_cnt, count(distinct earnings) earnings_cnt from courseSales group by course")
@@ -73,7 +90,6 @@ class XiaoluobuSQLQuerySuite extends QueryTest
     // println(phy.prettyJson)
     // println("== executedPlan ==")
     println(analyzedDF.queryExecution.executedPlan.prettyJson)
-    analyzedDF.show()
   }
 
 
