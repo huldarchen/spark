@@ -22,15 +22,14 @@ import java.math.BigInteger
 import java.sql.Timestamp
 import java.time.{LocalDateTime, ZoneId, ZoneOffset}
 import java.util.Locale
-
 import com.google.common.io.Files
 import org.apache.hadoop.fs.Path
 import org.apache.parquet.hadoop.ParquetOutputFormat
-
 import org.apache.spark.SparkConf
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.catalog.ExternalCatalogUtils
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.catalyst.util.{DateFormatter, DateTimeUtils, TimestampFormatter}
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.localDateTimeToMicros
 import org.apache.spark.sql.execution.datasources._
@@ -1075,8 +1074,7 @@ abstract class ParquetPartitionDiscoverySuite
       data.write.partitionBy("date_month", "date_hour", "date_t_hour").parquet(path.getAbsolutePath)
       val input = spark.read.parquet(path.getAbsolutePath).select("id",
         "date_month", "date_hour", "date_t_hour", "data")
-
-      assert(data.schema.sameType(input.schema))
+      assert(DataTypeUtils.sameType(data.schema, input.schema))
       checkAnswer(input, data)
     }
   }

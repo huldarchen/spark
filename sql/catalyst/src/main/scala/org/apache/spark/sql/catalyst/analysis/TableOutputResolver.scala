@@ -18,9 +18,9 @@
 package org.apache.spark.sql.catalyst.analysis
 
 import scala.collection.mutable
-
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.catalyst.util.CharVarcharUtils
 import org.apache.spark.sql.connector.catalog.CatalogV2Implicits._
 import org.apache.spark.sql.errors.QueryCompilationErrors
@@ -243,7 +243,7 @@ object TableOutputResolver {
       addError: String => Unit): Option[NamedExpression] = {
 
     val storeAssignmentPolicy = conf.storeAssignmentPolicy
-    lazy val outputField = if (tableAttr.dataType.sameType(queryExpr.dataType) &&
+    lazy val outputField = if (DataTypeUtils.sameType(tableAttr.dataType, queryExpr.dataType) &&
       tableAttr.name == queryExpr.name &&
       tableAttr.metadata == queryExpr.metadata) {
       Some(queryExpr)

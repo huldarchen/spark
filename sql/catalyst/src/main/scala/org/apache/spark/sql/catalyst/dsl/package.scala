@@ -19,9 +19,7 @@ package org.apache.spark.sql.catalyst
 
 import java.sql.{Date, Timestamp}
 import java.time.{Duration, Instant, LocalDate, LocalDateTime, Period}
-
 import scala.language.implicitConversions
-
 import org.apache.spark.api.java.function.FilterFunction
 import org.apache.spark.sql.Encoder
 import org.apache.spark.sql.catalyst.analysis._
@@ -30,6 +28,7 @@ import org.apache.spark.sql.catalyst.expressions.aggregate._
 import org.apache.spark.sql.catalyst.expressions.objects.Invoke
 import org.apache.spark.sql.catalyst.plans.{Inner, JoinType}
 import org.apache.spark.sql.catalyst.plans.logical._
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -129,7 +128,7 @@ package object dsl {
       UnresolvedExtractValue(expr, Literal(fieldName))
 
     def cast(to: DataType): Expression = {
-      if (expr.resolved && expr.dataType.sameType(to)) {
+      if (expr.resolved && DataTypeUtils.sameType(expr.dataType, to)) {
         expr
       } else {
         val cast = Cast(expr, to)

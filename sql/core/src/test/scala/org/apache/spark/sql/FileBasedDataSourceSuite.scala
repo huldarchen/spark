@@ -21,18 +21,16 @@ import java.io.{File, FileNotFoundException}
 import java.net.URI
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.Locale
-
 import scala.collection.mutable
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{LocalFileSystem, Path}
-
 import org.apache.spark.SparkException
 import org.apache.spark.scheduler.{SparkListener, SparkListenerTaskEnd}
 import org.apache.spark.sql.TestingUDT.{IntervalUDT, NullData, NullUDT}
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.catalyst.expressions.IntegralLiteralTestUtils.{negativeInt, positiveInt}
 import org.apache.spark.sql.catalyst.plans.logical.Filter
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.execution.SimpleMode
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.sql.execution.datasources.FilePartition
@@ -88,7 +86,7 @@ class FileBasedDataSourceSuite extends QueryTest
         df.write.format(format).option("header", "true").save(dir)
         val answerDf = spark.read.format(format).option("header", "true").load(dir)
 
-        assert(df.schema.sameType(answerDf.schema))
+        assert(DataTypeUtils.sameType(df.schema, answerDf.schema))
         checkAnswer(df, answerDf)
       }
     }
@@ -104,7 +102,7 @@ class FileBasedDataSourceSuite extends QueryTest
         emptyDf.write.format(format).save(path)
 
         val df = spark.read.format(format).load(path)
-        assert(df.schema.sameType(emptyDf.schema))
+        assert(DataTypeUtils.sameType(df.schema, emptyDf.schema))
         checkAnswer(df, emptyDf)
       }
     }

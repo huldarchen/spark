@@ -18,15 +18,14 @@
 package org.apache.spark.sql.execution.datasources
 
 import java.io.File
-
 import org.scalactic.Equality
-
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, QueryTest, Row}
 import org.apache.spark.sql.catalyst.SchemaPruningTest
 import org.apache.spark.sql.catalyst.expressions.Concat
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
 import org.apache.spark.sql.catalyst.plans.logical.Expand
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanHelper
 import org.apache.spark.sql.functions._
@@ -831,7 +830,7 @@ abstract class SchemaPruningSuite
   protected val schemaEquality = new Equality[StructType] {
     override def areEqual(a: StructType, b: Any): Boolean =
       b match {
-        case otherType: StructType => a.sameType(otherType)
+        case otherType: StructType => DataTypeUtils.sameType(a, otherType)
         case _ => false
       }
   }

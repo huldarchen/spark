@@ -17,18 +17,17 @@
 
 package org.apache.spark.sql.types
 
-import scala.collection.{mutable, Map}
+import scala.collection.{Map, mutable}
 import scala.util.Try
 import scala.util.control.NonFatal
-
 import org.json4s.JsonDSL._
-
 import org.apache.spark.annotation.Stable
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference, InterpretedOrdering}
 import org.apache.spark.sql.catalyst.parser.{CatalystSqlParser, LegacyTypeStringParser}
 import org.apache.spark.sql.catalyst.trees.Origin
-import org.apache.spark.sql.catalyst.util.{truncatedString, StringUtils}
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
+import org.apache.spark.sql.catalyst.util.{StringUtils, truncatedString}
 import org.apache.spark.sql.catalyst.util.StringUtils.StringConcat
 import org.apache.spark.sql.errors.{QueryCompilationErrors, QueryExecutionErrors}
 import org.apache.spark.sql.internal.SQLConf
@@ -692,7 +691,7 @@ object StructType extends AbstractDataType {
         // Found a missing field in `source`.
         newFields += field
       } else if (bothStructType(found.get.dataType, field.dataType) &&
-          !found.get.dataType.sameType(field.dataType)) {
+          !DataTypeUtils.sameType(found.get.dataType, field.dataType)) {
         // Found a field with same name, but different data type.
         findMissingFields(found.get.dataType.asInstanceOf[StructType],
           field.dataType.asInstanceOf[StructType], resolver).map { missingType =>

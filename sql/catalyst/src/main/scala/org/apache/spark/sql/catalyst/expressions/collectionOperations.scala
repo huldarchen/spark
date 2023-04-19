@@ -18,21 +18,21 @@ package org.apache.spark.sql.catalyst.expressions
 
 import java.time.{Duration, Period, ZoneId}
 import java.util.Comparator
-
 import scala.collection.mutable
 import scala.reflect.ClassTag
-
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, TypeCoercion, UnresolvedAttribute, UnresolvedSeed}
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult.DataTypeMismatch
+import org.apache.spark.sql.catalyst.analysis.{DataTypeMisMatch, TypeCheckResult, TypeCoercion, UnresolvedAttribute, UnresolvedSeed}
 import org.apache.spark.sql.catalyst.expressions.ArraySortLike.NullOrder
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.trees.{BinaryLike, UnaryLike}
 import org.apache.spark.sql.catalyst.trees.TreePattern.{ARRAYS_ZIP, CONCAT, TreePattern}
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.catalyst.util.DateTimeConstants._
 import org.apache.spark.sql.catalyst.util.DateTimeUtils._
-import org.apache.spark.sql.errors.QueryExecutionErrors
+import org.apache.spark.sql.errors.{QueryErrorsBase, QueryExecutionErrors}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SQLOpenHashSet
@@ -64,7 +64,7 @@ trait BinaryArrayExpressionWithImplicitCast extends BinaryExpression
 
   override def checkInputDataTypes(): TypeCheckResult = {
     (left.dataType, right.dataType) match {
-      case (ArrayType(e1, _), ArrayType(e2, _)) if e1.sameType(e2) =>
+      case (ArrayType(e1, _), ArrayType(e2, _)) if DataTypeUtils.sameType(e1, e2) =>
         TypeCheckResult.TypeCheckSuccess
       case _ => TypeCheckResult.TypeCheckFailure(s"input to function $prettyName should have " +
         s"been two ${ArrayType.simpleString}s with same element type, but it's " +
@@ -227,7 +227,7 @@ case class MapContainsKey(left: Expression, right: Expression)
     (left.dataType, right.dataType) match {
       case (_, NullType) =>
         TypeCheckResult.TypeCheckFailure("Null typed values cannot be used as arguments")
-      case (MapType(kt, _, _), dt) if kt.sameType(dt) =>
+      case (MapType(kt, _, _), dt) if DataTypeUtils.sameType(kt, dt) =>
         TypeUtils.checkForOrderingExpr(kt, s"function $prettyName")
       case _ => TypeCheckResult.TypeCheckFailure(s"Input to function $prettyName should have " +
         s"been ${MapType.simpleString} followed by a value with same key type, but it's " +
@@ -1254,7 +1254,7 @@ case class ArrayContains(left: Expression, right: Expression)
     (left.dataType, right.dataType) match {
       case (_, NullType) =>
         TypeCheckResult.TypeCheckFailure("Null typed values cannot be used as arguments")
-      case (ArrayType(e1, _), e2) if e1.sameType(e2) =>
+      case (ArrayType(e1, _), e2) if DataTypeUtils.sameType(e1, e2) =>
         TypeUtils.checkForOrderingExpr(e2, s"function $prettyName")
       case _ => TypeCheckResult.TypeCheckFailure(s"Input to function $prettyName should have " +
         s"been ${ArrayType.simpleString} followed by a value with same element type, but it's " +
@@ -2028,7 +2028,7 @@ case class ArrayPosition(left: Expression, right: Expression)
 
   override def checkInputDataTypes(): TypeCheckResult = {
     (left.dataType, right.dataType) match {
-      case (ArrayType(e1, _), e2) if e1.sameType(e2) =>
+      case (ArrayType(e1, _), e2) if DataTypeUtils.sameType(e1, e2) =>
         TypeUtils.checkForOrderingExpr(e2, s"function $prettyName")
       case _ => TypeCheckResult.TypeCheckFailure(s"Input to function $prettyName should have " +
         s"been ${ArrayType.simpleString} followed by a value with same element type, but it's " +
@@ -2139,7 +2139,7 @@ case class ElementAt(
         TypeCheckResult.TypeCheckFailure(s"Input to function $prettyName should have " +
           s"been ${ArrayType.simpleString} followed by a ${IntegerType.simpleString}, but it's " +
           s"[${left.dataType.catalogString}, ${right.dataType.catalogString}].")
-      case (MapType(e1, _, _), e2) if (!e2.sameType(e1)) =>
+      case (MapType(e1, _, _), e2) if (!DataTypeUtils.sameType(e2, e1)) =>
         TypeCheckResult.TypeCheckFailure(s"Input to function $prettyName should have " +
           s"been ${MapType.simpleString} followed by a value of same key type, but it's " +
           s"[${left.dataType.catalogString}, ${right.dataType.catalogString}].")
@@ -2706,8 +2706,8 @@ case class Sequence(
   override def checkInputDataTypes(): TypeCheckResult = {
     val startType = start.dataType
     def stepType = stepOpt.get.dataType
-    val typesCorrect =
-      startType.sameType(stop.dataType) &&
+    val typesCorrect = {
+      DataTypeUtils.sameType(startType, stop.dataType) &&
         (startType match {
           case TimestampType | TimestampNTZType =>
             stepOpt.isEmpty || CalendarIntervalType.acceptsType(stepType) ||
@@ -2718,9 +2718,10 @@ case class Sequence(
               YearMonthIntervalType.acceptsType(stepType) ||
               DayTimeIntervalType.acceptsType(stepType)
           case _: IntegralType =>
-            stepOpt.isEmpty || stepType.sameType(startType)
+            stepOpt.isEmpty || DataTypeUtils.sameType(stepType, startType)
           case _ => false
         })
+    }
 
     if (typesCorrect) {
       TypeCheckResult.TypeCheckSuccess
@@ -3395,7 +3396,7 @@ case class ArrayRemove(left: Expression, right: Expression)
 
   override def checkInputDataTypes(): TypeCheckResult = {
     (left.dataType, right.dataType) match {
-      case (ArrayType(e1, _), e2) if e1.sameType(e2) =>
+      case (ArrayType(e1, _), e2) if DataTypeUtils.sameType(e1, e2) =>
         TypeUtils.checkForOrderingExpr(e2, s"function $prettyName")
       case _ => TypeCheckResult.TypeCheckFailure(s"Input to function $prettyName should have " +
         s"been ${ArrayType.simpleString} followed by a value with same element type, but it's " +
@@ -4422,4 +4423,131 @@ case class ArrayExcept(left: Expression, right: Expression) extends ArrayBinaryL
 
   override protected def withNewChildrenInternal(
     newLeft: Expression, newRight: Expression): ArrayExcept = copy(left = newLeft, right = newRight)
+}
+
+case class ArrayAppend(left: Expression, right: Expression)
+  extends BinaryExpression
+  with ImplicitCastInputTypes
+  with ComplexTypeMergingExpression
+  with QueryErrorsBase {
+  override def prettyName: String = "array_append"
+
+  @transient protected lazy val elementType: DataType =
+    inputTypes.head.asInstanceOf[ArrayType].elementType
+
+  override def inputTypes: Seq[AbstractDataType] = {
+    (left.dataType, right.dataType) match {
+      case (ArrayType(e1, hasNult), e2) =>
+        TypeCoercion.findTightestCommonType(e1, e2) match {
+          case Some(dt) => Seq(ArrayType(dt, hasNult), dt)
+          case _ => Seq.empty
+        }
+      case _ => Seq.empty
+    }
+  }
+
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    (left.dataType, right.dataType) match {
+      case (ArrayType(e1, _), e2) if DataTypeUtils.sameType(e1, e2) => TypeCheckResult.TypeCheckSuccess
+      case (ArrayType(e1, _), e2) => DataTypeMisMatch(
+        errorSubClass = "ARRAY_FUNCTION_DIFF_TYPE",
+        messageParameters = Map(
+          "functionName" -> toSQLId(prettyName),
+          "leftType" -> toSQLType(left.dataType),
+          "rightType" -> toSQLType(right.dataType),
+          "dataType" -> toSQLType(ArrayType)
+        ))
+      case _ => DataTypeMisMatch(
+        errorSubClass = "UNEXPECTED_INPUT_TYPE",
+        messageParameters = Map(
+          "paramIndex" -> "0",
+          "requiredType" -> toSQLType(ArrayType),
+          "inputSql" -> toSQLExpr(left),
+          "inputType" -> toSQLType(left.dataType)
+        ))
+    }
+  }
+
+
+  override def eval(input: InternalRow): Any = {
+    val value1 = left.eval(input)
+    if (value1 == null) {
+      null
+    } else {
+      val value2 = right.eval(input)
+      nullSafeEval(value1, value2)
+    }
+  }
+
+
+  override protected def nullSafeEval(arr: Any, elementData: Any): Any = {
+    val arrayData = arr.asInstanceOf[ArrayData]
+    val numberOfElements = arrayData.numElements() + 1
+    if (numberOfElements > ByteArrayMethods.MAX_ROUNDED_ARRAY_LENGTH) {
+      throw QueryExecutionErrors.concatArraysWithElementsExceedLimitError(numberOfElements)
+    }
+    val finalData = new Array[Any](numberOfElements)
+    arrayData.foreach(elementType, finalData.update)
+    finalData.update(arrayData.numElements(), elementData)
+    new GenericArrayData(finalData)
+  }
+
+
+  override def foldable: Boolean = left.foldable
+
+
+  override def dataType: DataType = if (right.nullable) left.dataType.asNullable else left.dataType
+
+  override protected def withNewChildrenInternal (newLeft: Expression, newRight: Expression): Expression =
+    copy(left = newLeft, right = newRight)
+
+  override protected def doGenCode (ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val leftGen = left.genCode(ctx)
+    val rightGen = right.genCode(ctx)
+    val f = (eval1: String, eval2: String) => {
+      val newArraySize = ctx.freshName("newArraySize")
+      val i = ctx.freshName("i")
+      val values = ctx.freshName("values")
+      val allocation = CodeGenerator.createArrayData(
+        values, elementType, newArraySize, s" $prettyName failed.")
+      val assignment = CodeGenerator.createArrayAssignment(
+        values, elementType, eval1, i, i, left.dataType.asInstanceOf[ArrayType].containsNull)
+      s"""
+        |int $newArraySize = $eval1.numElements() + 1;
+        |$allocation
+        |int $i = 0;
+        |while ($i < $eval1.numElements()) {
+        |  $assignment
+        |  $i ++;
+        |}
+        |${CodeGenerator.setArrayElement(values, elementType, i, eval2, Some(rightGen.isNull))}
+        |${ev.value} = $values;
+      """.stripMargin
+    }
+
+    val resultCode = f(leftGen.value, rightGen.value)
+    if (nullable) {
+      val nullSafeEval =
+        leftGen.code + rightGen.code + ctx.nullSafeExec(left.nullable, leftGen.isNull) {
+          s"""
+              ${ev.isNull} = false; // resultCode could change nullability
+              $resultCode
+          """
+        }
+      ev.copy(code =
+      code"""
+      boolean ${ev.isNull} = true;
+      ${CodeGenerator.javaType(dataType)} ${ev.value} = ${CodeGenerator.defaultValue(dataType)};
+      $nullSafeEval
+      """)
+    } else {
+      ev.copy(code =
+        code"""
+        ${leftGen.code}
+        ${rightGen.code}
+        ${CodeGenerator.javaType(dataType)} ${ev.value} = ${CodeGenerator.defaultValue(dataType)};
+        $resultCode""", isNull = FalseLiteral)
+    }
+  }
 }

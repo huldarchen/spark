@@ -19,15 +19,14 @@ package org.apache.spark.sql.execution.datasources.binaryfile
 
 import java.net.URI
 import java.sql.Timestamp
-
 import com.google.common.io.{ByteStreams, Closeables}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.mapreduce.Job
-
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.UnsafeRowWriter
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
@@ -89,7 +88,7 @@ class BinaryFileFormat extends FileFormat with DataSourceRegister {
       filters: Seq[Filter],
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
-    require(dataSchema.sameType(schema),
+    require(DataTypeUtils.sameType(dataSchema, schema),
       s"""
          |Binary file data source expects dataSchema: $schema,
          |but got: $dataSchema.

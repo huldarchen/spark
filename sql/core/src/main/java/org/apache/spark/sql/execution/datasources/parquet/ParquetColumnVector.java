@@ -24,6 +24,7 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 
 import org.apache.spark.memory.MemoryMode;
+import org.apache.spark.sql.catalyst.types.DataTypeUtils;
 import org.apache.spark.sql.execution.vectorized.OffHeapColumnVector;
 import org.apache.spark.sql.execution.vectorized.OnHeapColumnVector;
 import org.apache.spark.sql.execution.vectorized.WritableColumnVector;
@@ -72,7 +73,7 @@ final class ParquetColumnVector {
       Set<ParquetColumn> missingColumns,
       boolean isTopLevel) {
     DataType sparkType = column.sparkType();
-    if (!sparkType.sameType(vector.dataType())) {
+    if (!DataTypeUtils.sameType(sparkType, vector.dataType())) {
       throw new IllegalArgumentException("Spark type: " + sparkType +
         " doesn't match the type: " + vector.dataType() + " in column vector");
     }

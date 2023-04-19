@@ -19,7 +19,6 @@ package org.apache.spark.sql.catalyst.optimizer
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.runtime.universe.TypeTag
-
 import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.dsl.plans._
 import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder}
@@ -28,6 +27,7 @@ import org.apache.spark.sql.catalyst.expressions.objects.Invoke
 import org.apache.spark.sql.catalyst.plans.PlanTest
 import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.catalyst.rules.RuleExecutor
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
 
@@ -95,7 +95,7 @@ class ObjectSerializerPruningSuite extends PlanTest {
           CreateNamedStruct(children.take(2))
       }.transformUp {
         // Aligns null literal in `If` expression to make it resolvable.
-        case i @ If(_: IsNull, Literal(null, dt), ser) if !dt.sameType(ser.dataType) =>
+        case i @ If(_: IsNull, Literal(null, dt), ser) if !DataTypeUtils.sameType(dt, ser.dataType) =>
           i.copy(trueValue = Literal(null, ser.dataType))
       }.asInstanceOf[NamedExpression]
 
@@ -125,7 +125,7 @@ class ObjectSerializerPruningSuite extends PlanTest {
       }.transformUp {
         // Aligns null literal in `If` expression to make it resolvable.
         case i @ If(invoke: Invoke, Literal(null, dt), ser) if invoke.functionName == "isNullAt" &&
-            !dt.sameType(ser.dataType) =>
+            !DataTypeUtils.sameType(dt, ser.dataType) =>
           i.copy(trueValue = Literal(null, ser.dataType))
       }.asInstanceOf[NamedExpression]
 

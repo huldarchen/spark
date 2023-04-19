@@ -18,19 +18,17 @@
 package org.apache.spark.sql.types
 
 import java.util.Locale
-
 import scala.util.control.NonFatal
-
 import com.fasterxml.jackson.databind.annotation.{JsonDeserialize, JsonSerialize}
 import org.json4s._
 import org.json4s.JsonAST.JValue
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
-
 import org.apache.spark.annotation.Stable
 import org.apache.spark.sql.catalyst.analysis.Resolver
 import org.apache.spark.sql.catalyst.expressions.{Cast, Expression}
 import org.apache.spark.sql.catalyst.parser.CatalystSqlParser
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.catalyst.util.DataTypeJsonUtils.{DataTypeJsonDeserializer, DataTypeJsonSerializer}
 import org.apache.spark.sql.catalyst.util.StringUtils.StringConcat
 import org.apache.spark.sql.errors.QueryCompilationErrors
@@ -92,17 +90,6 @@ abstract class DataType extends AbstractDataType {
   def sql: String = simpleString.toUpperCase(Locale.ROOT)
 
   /**
-   * Check if `this` and `other` are the same data type when ignoring nullability
-   * (`StructField.nullable`, `ArrayType.containsNull`, and `MapType.valueContainsNull`).
-   */
-  private[spark] def sameType(other: DataType): Boolean =
-    if (SQLConf.get.caseSensitiveAnalysis) {
-      DataType.equalsIgnoreNullability(this, other)
-    } else {
-      DataType.equalsIgnoreCaseAndNullability(this, other)
-    }
-
-  /**
    * Returns the same data type but set all nullability fields are true
    * (`StructField.nullable`, `ArrayType.containsNull`, and `MapType.valueContainsNull`).
    */
@@ -115,7 +102,8 @@ abstract class DataType extends AbstractDataType {
 
   override private[sql] def defaultConcreteType: DataType = this
 
-  override private[sql] def acceptsType(other: DataType): Boolean = sameType(other)
+  override private[sql] def acceptsType(other: DataType): Boolean =
+    DataTypeUtils.sameType(this, other)
 }
 
 
@@ -290,25 +278,6 @@ object DataType {
   }
 
   /**
-   * Compares two types, ignoring nullability of ArrayType, MapType, StructType.
-   */
-  private[sql] def equalsIgnoreNullability(left: DataType, right: DataType): Boolean = {
-    (left, right) match {
-      case (ArrayType(leftElementType, _), ArrayType(rightElementType, _)) =>
-        equalsIgnoreNullability(leftElementType, rightElementType)
-      case (MapType(leftKeyType, leftValueType, _), MapType(rightKeyType, rightValueType, _)) =>
-        equalsIgnoreNullability(leftKeyType, rightKeyType) &&
-          equalsIgnoreNullability(leftValueType, rightValueType)
-      case (StructType(leftFields), StructType(rightFields)) =>
-        leftFields.length == rightFields.length &&
-          leftFields.zip(rightFields).forall { case (l, r) =>
-            l.name == r.name && equalsIgnoreNullability(l.dataType, r.dataType)
-          }
-      case (l, r) => l == r
-    }
-  }
-
-  /**
    * Compares two types, ignoring compatible nullability of ArrayType, MapType, StructType.
    *
    * Compatible nullability is defined as follows:
@@ -366,30 +335,6 @@ object DataType {
             (ignoreName || fromField.name == toField.name) &&
               (toField.nullable || !fromField.nullable) &&
               equalsIgnoreCompatibleNullability(fromField.dataType, toField.dataType, ignoreName)
-          }
-
-      case (fromDataType, toDataType) => fromDataType == toDataType
-    }
-  }
-
-  /**
-   * Compares two types, ignoring nullability of ArrayType, MapType, StructType, and ignoring case
-   * sensitivity of field names in StructType.
-   */
-  private[sql] def equalsIgnoreCaseAndNullability(from: DataType, to: DataType): Boolean = {
-    (from, to) match {
-      case (ArrayType(fromElement, _), ArrayType(toElement, _)) =>
-        equalsIgnoreCaseAndNullability(fromElement, toElement)
-
-      case (MapType(fromKey, fromValue, _), MapType(toKey, toValue, _)) =>
-        equalsIgnoreCaseAndNullability(fromKey, toKey) &&
-          equalsIgnoreCaseAndNullability(fromValue, toValue)
-
-      case (StructType(fromFields), StructType(toFields)) =>
-        fromFields.length == toFields.length &&
-          fromFields.zip(toFields).forall { case (l, r) =>
-            l.name.equalsIgnoreCase(r.name) &&
-              equalsIgnoreCaseAndNullability(l.dataType, r.dataType)
           }
 
       case (fromDataType, toDataType) => fromDataType == toDataType
@@ -579,7 +524,7 @@ object DataType {
           true
         }
 
-      case (w, r) if w.sameType(r) && !w.isInstanceOf[NullType] =>
+      case (w, r) if DataTypeUtils.sameType(w, r) && !w.isInstanceOf[NullType] =>
         true
 
       case (w, r) =>

@@ -19,14 +19,13 @@ package org.apache.spark.sql.catalyst.expressions
 
 import java.util.Comparator
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
-
 import scala.collection.mutable
-
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, TypeCoercion, UnresolvedException}
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.trees.{BinaryLike, QuaternaryLike, TernaryLike}
 import org.apache.spark.sql.catalyst.trees.TreePattern._
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.errors.QueryExecutionErrors
 import org.apache.spark.sql.internal.SQLConf
@@ -1023,7 +1022,7 @@ case class MapZipWith(left: Expression, right: Expression, function: Expression)
   override def checkArgumentDataTypes(): TypeCheckResult = {
     super.checkArgumentDataTypes() match {
       case TypeCheckResult.TypeCheckSuccess =>
-        if (leftKeyType.sameType(rightKeyType)) {
+        if (DataTypeUtils.sameType(leftKeyType, rightKeyType)) {
           TypeUtils.checkForOrderingExpr(leftKeyType, s"function $prettyName")
         } else {
           TypeCheckResult.TypeCheckFailure(s"The input to function $prettyName should have " +

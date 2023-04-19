@@ -18,12 +18,12 @@
 package org.apache.spark.sql.catalyst.analysis
 
 import scala.util.control.NonFatal
-
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.AliasHelper
 import org.apache.spark.sql.catalyst.plans.logical.{LocalRelation, LogicalPlan}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.trees.AlwaysProcess
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.types.{StructField, StructType}
 
 /**
@@ -97,7 +97,7 @@ object ResolveInlineTables extends Rule[LogicalPlan] with CastSupport with Alias
       InternalRow.fromSeq(row.zipWithIndex.map { case (e, ci) =>
         val targetType = fields(ci).dataType
         try {
-          val castedExpr = if (e.dataType.sameType(targetType)) {
+          val castedExpr = if (DataTypeUtils.sameType(e.dataType, targetType)) {
             e
           } else {
             cast(e, targetType)
