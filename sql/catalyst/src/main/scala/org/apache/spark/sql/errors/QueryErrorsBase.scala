@@ -18,10 +18,9 @@
 package org.apache.spark.sql.errors
 
 import java.util.Locale
-
 import org.apache.spark.sql.catalyst.expressions.{Expression, Literal}
 import org.apache.spark.sql.catalyst.util.{quoteIdentifier, toPrettySQL}
-import org.apache.spark.sql.types.{DataType, DoubleType, FloatType}
+import org.apache.spark.sql.types.{AbstractDataType, DataType, DoubleType, FloatType, TypeCollection}
 
 /**
  * The trait exposes util methods for preparing error messages such as quoting of error elements.
@@ -73,6 +72,12 @@ private[sql] trait QueryErrorsBase {
 
   def toSQLId(parts: String): String = {
     toSQLId(parts.split("\\."))
+  }
+
+  def toSQLType(t: AbstractDataType): String = t match {
+    case TypeCollection(types) => types.map(toSQLType).mkString("(", ",", ")")
+    case dt: DataType => quoteByDefault(dt.sql)
+    case at => quoteByDefault(at.simpleString.toUpperCase(Locale.ROOT))
   }
 
   def toSQLType(t: DataType): String = {

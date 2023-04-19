@@ -21,8 +21,8 @@ import org.apache.spark.sql.catalyst.analysis.UpdateAttributeNullability
 import org.apache.spark.sql.catalyst.optimizer.{ConvertToLocalRelation, EliminateLimits, OptimizeOneRowPlan}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, LogicalPlanIntegrity, PlanHelper}
 import org.apache.spark.sql.catalyst.rules.{Rule, RuleExecutor}
+import org.apache.spark.sql.catalyst.types.DataTypeUtils
 import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.types.DataType
 import org.apache.spark.util.Utils
 
 /**
@@ -75,6 +75,6 @@ class AQEOptimizer(conf: SQLConf, extendedRuntimeOptimizerRules: Seq[Rule[Logica
     !Utils.isTesting || (currentPlan.resolved &&
       !currentPlan.exists(PlanHelper.specialExpressionsInUnsupportedOperator(_).nonEmpty) &&
       LogicalPlanIntegrity.checkIfExprIdsAreGloballyUnique(currentPlan) &&
-      DataType.equalsIgnoreNullability(previousPlan.schema, currentPlan.schema))
+      DataTypeUtils.equalsIgnoreNullability(previousPlan.schema, currentPlan.schema))
   }
 }
