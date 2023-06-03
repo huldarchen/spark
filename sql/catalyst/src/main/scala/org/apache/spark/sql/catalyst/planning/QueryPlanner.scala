@@ -62,6 +62,7 @@ abstract class QueryPlanner[PhysicalPlan <: TreeNode[PhysicalPlan]] {
     // Collect physical plan candidates.
     // val candidates = strategies.iterator.flatMap(_(plan))
     val candidates = strategies.iterator.flatMap(sta => {
+      println(sta.getClass.getSimpleName)
       val plans = sta.apply(plan)
       plans.foreach(p => p.toJSON)
       plans

@@ -39,18 +39,10 @@ class XiaoluobuHiveSQLQuerySuite extends QueryTest with SQLTestUtils with TestHi
 
   import spark.implicits._
 
-  test("test timestamp") {
-    withTable("test") {
-      sql("CREATE TABLE test(dt timestamp) STORED AS PARQUET")
-      sql("insert into test values(1430816254)")
-      // sql("select * from timestamp_t").show()
-    }
-  }
-
   test("SPARK-6851: Self-joined converted parquet tables") {
     withTempView("orders1") {
       val orderInfo = Seq(
-        OrderInfo(1, "Atlas", "MTB", 234, "2015-01-07", "John D", "DELL-3000122109520.1", "CA", 202211),
+        OrderInfo(1, "Atlas", "MTB", 234, "2015-01-07", "John D", "Pacifica", "CA", 202211),
         OrderInfo(3, "Swift", "MTB", 285, "2015-01-17", "John S", "Redwood City", "CA", 20221101),
         OrderInfo(4, "Atlas", "Hybrid", 303, "2015-01-23", "Jones S", "San Mateo", "CA", 20221102),
         OrderInfo(7, "Next", "MTB", 356, "2015-01-04", "Jane D", "Daly City", "CA", 20221103),
@@ -76,8 +68,8 @@ class XiaoluobuHiveSQLQuerySuite extends QueryTest with SQLTestUtils with TestHi
         sql("CREATE TEMPORARY FUNCTION pre_week_end_date_4_ads AS 'com.dmall.udf.UDFPreWeekEndDate';")
         sql("CREATE TEMPORARY FUNCTION pre_week_start_date_4_ads AS 'com.dmall.udf.UDFPreWeekStartDate';")
 
-        // val analyzedDF = sql(" SELECT * FROM orders WHERE dt BETWEEN pre_week_end_date_4_ads('20221112') AND pre_week_end_date_4_ads('20221112', 1)")
-        val analyzedDF = sql(" SELECT dt, collect_set(type) AS type, sum(price) as price FROM orders1 group by dt having size(type) >= 1")
+        val analyzedDF = sql(" SELECT * FROM orders WHERE dt BETWEEN pre_week_end_date_4_ads('20221112') AND pre_week_end_date_4_ads('20221112', 1)")
+
         // analyzedDF.show(false)
         val ana = analyzedDF.queryExecution.analyzed
         println("== Analyzed Logical Plan ==")
