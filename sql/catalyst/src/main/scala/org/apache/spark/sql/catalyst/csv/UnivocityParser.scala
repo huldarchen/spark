@@ -282,6 +282,7 @@ class UnivocityParser(
     (tokens: Array[String], index: Int) => tokens(tokenIndexArr(index))
   }
 
+  // SR5 数据进入spark从这里将行数据转换成InternalRow,准确来说是转换成GenericInternalRow
   private def convert(tokens: Array[String]): Option[InternalRow] = {
     if (tokens == null) {
       throw BadRecordException(
@@ -309,6 +310,7 @@ class UnivocityParser(
         if (skipRow) {
           row.setNullAt(i)
         } else {
+          // SR5 valueConverters(i).apply(getToken(tokens, i)) 是用来将输入的字符串转换成对应的数据类型数据,然后设置到GenericInternalRow中
           row(i) = valueConverters(i).apply(getToken(tokens, i))
           if (csvFilters.skipRow(row, i)) {
             skipRow = true

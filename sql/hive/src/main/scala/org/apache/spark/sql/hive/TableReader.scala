@@ -200,8 +200,10 @@ class HadoopTableReader(
 
     val hivePartitionRDDs = verifyPartitionPath(partitionToDeserializer)
       .map { case (partition, partDeserializer) =>
+        // SR6 分区 + 反序列化
       val partDesc = Utilities.getPartitionDescFromTableDesc(tableDesc, partition, true)
       val partPath = partition.getDataLocation
+        // SR6 过滤分区
       val inputPathStr = applyFilterIfNeeded(partPath, filterOpt)
       // Get partition field info
       val partSpec = partDesc.getPartSpec
@@ -227,7 +229,7 @@ class HadoopTableReader(
         attributes.zipWithIndex.partition { case (attr, _) =>
           partitionKeys.contains(attr)
         }
-
+      // SR06 填充分区值
       def fillPartitionKeys(rawPartValues: Array[String], row: InternalRow): Unit = {
         partitionKeyAttrs.foreach { case (attr, ordinal) =>
           val partOrdinal = partitionKeys.indexOf(attr)
@@ -486,7 +488,7 @@ private[hive] object HadoopTableReader extends HiveInspectors with Logging {
     }
 
     logDebug(soi.toString)
-
+    // SR6 不是分区的列
     val (fieldRefs, fieldOrdinals) = nonPartitionKeyAttrs.map { case (attr, ordinal) =>
       soi.getStructFieldRef(attr.name) -> ordinal
     }.toArray.unzip
@@ -534,7 +536,7 @@ private[hive] object HadoopTableReader extends HiveInspectors with Logging {
           (value: Any, row: InternalRow, ordinal: Int) => row(ordinal) = unwrapper(value)
       }
     }
-
+    // SR6 获取输入输出转换器
     val converter = ObjectInspectorConverters.getConverter(rawDeser.getObjectInspector, soi)
 
     // Map each tuple to a row object
@@ -542,6 +544,7 @@ private[hive] object HadoopTableReader extends HiveInspectors with Logging {
       val raw = converter.convert(rawDeser.deserialize(value))
       var i = 0
       val length = fieldRefs.length
+      // SR6 将每一行的数据设置到mutableRow中
       while (i < length) {
         try {
           val fieldValue = soi.getStructFieldData(raw, fieldRefs(i))
