@@ -77,8 +77,9 @@ object AggUtils {
       child: SparkPlan): SparkPlan = {
     val useHash = Aggregate.supportsHashAggregate(
       aggregateExpressions.flatMap(_.aggregateFunction.aggBufferAttributes))
+    // 是否禁用排序聚合
     val forceSortAggregate = forceApplySortAggregate(child.conf)
-
+    // SR20230817 判断是否支持hash聚合方式
     if (useHash && !forceSortAggregate) {
       HashAggregateExec(
         requiredChildDistributionExpressions = requiredChildDistributionExpressions,

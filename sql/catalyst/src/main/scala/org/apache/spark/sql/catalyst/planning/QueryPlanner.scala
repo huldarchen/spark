@@ -60,7 +60,19 @@ abstract class QueryPlanner[PhysicalPlan <: TreeNode[PhysicalPlan]] {
     // Obviously a lot to do here still...
 
     // Collect physical plan candidates.
-    val candidates = strategies.iterator.flatMap(_(plan))
+    // val candidates = strategies.iterator.flatMap(_(plan))
+    /* -------------------【开始】这里是打印代码---------------------- */
+    val candidates = strategies.iterator.flatMap { strategy_middle =>
+      val my_plan = strategy_middle(plan)
+      if (my_plan.nonEmpty) {
+        println(s"========= effected strategy ${strategy_middle.getClass}")
+        println(my_plan)
+        println()
+      }
+      my_plan
+    }
+    /* -------------------【结束】这里是打印代码---------------------- */
+
 
     // The candidates may contain placeholders marked as [[planLater]],
     // so try to replace them by their child plans.
@@ -71,6 +83,7 @@ abstract class QueryPlanner[PhysicalPlan <: TreeNode[PhysicalPlan]] {
         // Take the candidate as is because it does not contain placeholders.
         Iterator(candidate)
       } else {
+        println(s"==============${candidate.toString}")
         // Plan the logical plan marked as [[planLater]] and replace the placeholders.
         placeholders.iterator.foldLeft(Iterator(candidate)) {
           case (candidatesWithPlaceholders, (placeholder, logicalPlan)) =>

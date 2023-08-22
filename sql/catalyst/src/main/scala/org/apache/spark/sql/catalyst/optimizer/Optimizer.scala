@@ -1543,6 +1543,7 @@ object EliminateSorts extends Rule[LogicalPlan] {
     _.containsPattern(SORT))(applyLocally)
 
   private val applyLocally: PartialFunction[LogicalPlan, LogicalPlan] = {
+    // SR20230815 case1 如果排序的字段是空的 或者 排序的列没有用到
     case s @ Sort(orders, _, child) if orders.isEmpty || orders.exists(_.child.foldable) =>
       val newOrders = orders.filterNot(_.child.foldable)
       if (newOrders.isEmpty) {

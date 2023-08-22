@@ -27,8 +27,8 @@ import scala.util.hashing.byteswap32
 
 import org.apache.spark.rdd.{PartitionPruningRDD, RDD}
 import org.apache.spark.serializer.JavaSerializer
-import org.apache.spark.util.{CollectionsUtils, Utils}
 import org.apache.spark.util.random.SamplingUtils
+import org.apache.spark.util.{CollectionsUtils, Utils}
 
 /**
  * An object that defines how the elements in a key-value pair RDD are partitioned by key.

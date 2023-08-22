@@ -37,6 +37,7 @@ private[spark] object SamplingUtils {
     : (Array[T], Long) = {
     val reservoir = new Array[T](k)
     // Put the first k elements in the reservoir.
+    // SR20230811 把前K个元素放到数组池塘中,K为设置的每个分区的样本数,即sampleSizePerPartition数
     var i = 0
     while (i < k && input.hasNext) {
       val item = input.next()
@@ -45,6 +46,7 @@ private[spark] object SamplingUtils {
     }
 
     // If we have consumed all the elements, return them. Otherwise do the replacement.
+    // SR20230811 如果数据少于抽样数量,截取数组并返回
     if (i < k) {
       // If input size < k, trim the array to return only an array of input size.
       val trimReservoir = new Array[T](i)
@@ -52,6 +54,7 @@ private[spark] object SamplingUtils {
       (trimReservoir, i)
     } else {
       // If input size > k, continue the sampling process.
+      // SR20230811 l = k - 1
       var l = i.toLong
       val rand = new XORShiftRandom(seed)
       while (input.hasNext) {
@@ -61,6 +64,7 @@ private[spark] object SamplingUtils {
         // consumed. It should be chosen with probability k/l. The expression
         // below is a random long chosen uniformly from [0,l)
         val replacementIndex = (rand.nextDouble() * l).toLong
+        // SR20230811 如果随机数小于k,则把reservoir数组中的对应的记录替换掉.算法的核心是随机数
         if (replacementIndex < k) {
           reservoir(replacementIndex.toInt) = item
         }
