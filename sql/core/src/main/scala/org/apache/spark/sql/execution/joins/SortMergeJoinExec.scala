@@ -1077,21 +1077,25 @@ private[joins] class SortMergeJoinScanner(
    *         results.
    */
   final def findNextInnerJoinRows(): Boolean = {
+    // SR24.2.18 匹配的key中有空值,一直迭代到没有空值为止
     while (advancedStreamed() && streamedRowKey.anyNull) {
       // Advance the streamed side of the join until we find the next row whose join key contains
       // no nulls or we hit the end of the streamed iterator.
     }
     val found = if (streamedRow == null) {
+      // SR24.2.18 遍历完streamed集合,未找到匹配的,直接返回false
       // We have consumed the entire streamed iterator, so there can be no more matches.
       matchJoinKey = null
       bufferedMatches.clear()
       false
     } else if (matchJoinKey != null && keyOrdering.compare(streamedRowKey, matchJoinKey) == 0) {
+      // 新的流式传输行与前一行具有相同的连接键，因此返回相同的匹配项。
       // The new streamed row has the same join key as the previous row, so return the same matches.
       true
     } else if (bufferedRow == null) {
       // The streamed row's join key does not match the current batch of buffered rows and there are
       // no more rows to read from the buffered iterator, so there can be no more matches.
+      // 流式传输行的连接键与当前批次的缓冲行不匹配，并且没有更多行可从缓冲迭代器读取，因此不能再有匹配项。
       matchJoinKey = null
       bufferedMatches.clear()
       false
@@ -1104,6 +1108,7 @@ private[joins] class SortMergeJoinScanner(
         } else {
           assert(!bufferedRowKey.anyNull)
           comp = keyOrdering.compare(streamedRowKey, bufferedRowKey)
+          // streamedRowKey > bufferedRowKey 推进buffered, 否则推进streamed
           if (comp > 0) advancedBufferedToRowWithNullFreeJoinKey()
           else if (comp < 0) advancedStreamed()
         }

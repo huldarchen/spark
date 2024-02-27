@@ -100,7 +100,17 @@ trait HashJoin extends JoinCodegenSupport {
             s"HashJoin should not take $x as the JoinType with building right side")
       }
   }
-
+  // terA，IterB为两个Iterator，根据规则A将两个Iterator中相应的Row进行合并，然后按照规则B对合并后Row进行过滤。
+  // 比如Inner_join，它的合并规则A为：对IterA中每一条记录，生成一个key，并利用该key从IterB的Map集合中获取到相应记录，并将它们进行合并；
+  // 而对于规则B可以为任意过滤条件，比如IterA和IterB任何两个字段进行比较操作。
+  // 对于IterA和IterB，当我们利用iterA中key去IterB中进行一一匹配时，我们称IterA为streamedIter，IterB为BuildIter或者hashedIter。
+  // 即我们流式遍历streamedIter中每一条记录，去hashedIter中去查找相应匹配的记录。
+  // 而这个查找过程中，即为Build过程，每一次Build操作的结果即为一条JoinRow（A,B），其中JoinRow(A)来自streamedIter，JoinRow(B)来自BuildIter，此时这个过程为BuildRight，而如果JoinRow(B)来自streamedIter，JoinRow(A)来自BuildIter，即为BuildLeft，
+  // 有点拗口！那么为什么要去区分BuildLeft和BuildRight呢？对于leftouter，rightouter，leftsemi,leftanti，
+  // 它们的Build类型是确定，即left*为BuildRight，right*为BuildLeft类型，但是对于inner操作，BuildLeft和BuildRight两种都可以，
+  // 而且选择不同，可能有很大性能区别：
+  // BuildIter也称为hashedIter，即需要将BuildIter构建为一个内存Hash，从而加速Build的匹配过程；
+  // 此时如果BuildIter和streamedIter大小相差较大，显然利用小的来建立Hash，内存占用要小很多！
   protected lazy val (buildPlan, streamedPlan) = buildSide match {
     case BuildLeft => (left, right)
     case BuildRight => (right, left)
@@ -209,6 +219,7 @@ trait HashJoin extends JoinCodegenSupport {
         }
       }
     } else {
+      // 如果是左外链接的话,hashedRelation为右表,如果右表有重复的时候,这里为什么这么处理.
       streamedIter.flatMap { currentRow =>
         val rowKey = keyGenerator(currentRow)
         joinedRow.withLeft(currentRow)
